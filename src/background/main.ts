@@ -1,5 +1,4 @@
 import { onMessage, sendMessage } from 'webext-bridge/background'
-import type { Tabs } from 'webextension-polyfill'
 
 // only on dev mode
 if (import.meta.hot) {
@@ -25,41 +24,39 @@ browser.runtime.onInstalled.addListener((): void => {
   console.log('Extension installed')
 })
 
-let previousTabId = 0
-
-// communication example: send previous tab title from background page
-// see shim.d.ts for type declaration
-browser.tabs.onActivated.addListener(async ({ tabId }) => {
-  if (!previousTabId) {
-    previousTabId = tabId
-    return
-  }
-
-  let tab: Tabs.Tab
-
-  try {
-    tab = await browser.tabs.get(previousTabId)
-    previousTabId = tabId
-  }
-  catch {
-    return
-  }
-
-  // eslint-disable-next-line no-console
-  console.log('previous tab', tab)
-  sendMessage('tab-prev', { title: tab.title }, { context: 'content-script', tabId })
-})
-
-onMessage('get-current-tab', async () => {
-  try {
-    const tab = await browser.tabs.get(previousTabId)
+onMessage('sync-local-storage-data', async (e) => {
+  const { sourceTabId, targetTabId, keys } = e.data
+  let response = await sendMessage('get-local-storage-data', {}, { context: 'content-script', tabId: sourceTabId })
+  if (!response.success) {
     return {
-      title: tab?.title,
+      success: false,
+      reason: 'Failed to get local storage data from source tab.',
     }
   }
-  catch {
+  if (!response.data) {
     return {
-      title: undefined,
+      success: false,
+      reason: 'No data to sync.',
     }
+  }
+  let data: Record<string, string> = {}
+  if (keys) {
+    keys.forEach((key) => {
+      data[key] = response.data![key]
+    })
+  }
+  else {
+    data = response.data
+  }
+
+  response = await sendMessage('set-local-storage-data', { data }, { context: 'content-script', tabId: targetTabId })
+  if (!response.success) {
+    return {
+      success: false,
+      reason: 'Failed to set local storage data to target tab.',
+    }
+  }
+  return {
+    success: true,
   }
 })

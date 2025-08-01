@@ -1,6 +1,9 @@
 import type { App } from 'vue'
+import Toast from '~/components/Toast.vue'
 
 export function setupApp(app: App) {
+  app.component('Toast', Toast)
+
   // Inject a globally available `$app` object in template
   app.config.globalProperties.$app = {
     context: '',

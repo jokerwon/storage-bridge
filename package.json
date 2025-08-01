@@ -1,6 +1,6 @@
 {
-  "name": "vitesse-webext",
-  "displayName": "Vitesse WebExt",
+  "name": "storage-bridge",
+  "displayName": "Storage Bridge",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@9.7.1",
@@ -30,6 +30,9 @@
     "postinstall": "simple-git-hooks",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@ameinhardt/unocss-preset-daisy": "^1.1.8"
+  },
   "devDependencies": {
     "@antfu/eslint-config": "^2.27.0",
     "@ffflorian/jszip-cli": "^3.8.5",
@@ -47,6 +50,7 @@
     "chokidar": "^3.6.0",
     "cross-env": "^7.0.3",
     "crx": "^5.0.1",
+    "daisyui": "^5.0.48",
     "eslint": "^9.9.0",
     "esno": "^4.7.0",
     "fs-extra": "^11.2.0",
