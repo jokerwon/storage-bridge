@@ -31,7 +31,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ameinhardt/unocss-preset-daisy": "^1.1.8"
+    "@ameinhardt/unocss-preset-daisy": "^1.1.8",
+    "js-cookie": "^3.0.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.27.0",
@@ -39,6 +40,7 @@
     "@iconify/json": "^2.2.239",
     "@playwright/test": "^1.46.1",
     "@types/fs-extra": "^11.0.4",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^22.5.0",
     "@types/webextension-polyfill": "^0.12.0",
     "@typescript-eslint/eslint-plugin": "^8.2.0",

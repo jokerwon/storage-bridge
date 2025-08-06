@@ -3,26 +3,47 @@ import { sendMessage } from 'webext-bridge/popup'
 import type { Tabs } from 'webextension-polyfill'
 import { useToast } from '~/composables/useToast'
 
+const { success, error, warning } = useToast()
+
 const tabs = ref<Tabs.Tab[]>([])
-const storageKeys = ref<string[]>([])
-const checkedKeys = ref<string[]>([])
+
 const source = ref(0)
 const target = ref(0)
-const { success, error, warning } = useToast()
+
+const localKeys = ref<string[]>([])
+const sessionKeys = ref<string[]>([])
+const cookieKeys = ref<string[]>([])
+const checkedLocalKeys = ref<string[]>([])
+const checkedSessionKeys = ref<string[]>([])
+const checkedCookieKeys = ref<string[]>([])
 
 onMounted(async () => {
   tabs.value = await browser.tabs.query({})
 })
 
 watch(source, async (newSource) => {
-  storageKeys.value = []
-  checkedKeys.value = []
-  const data = await getStorageData(newSource) || {}
-  storageKeys.value = Object.keys(data)
+  clearKeys()
+  clearChecked()
+  const data = await getStorageData(newSource)
+  localKeys.value = Object.keys(data?.local || {})
+  sessionKeys.value = Object.keys(data?.session || {})
+  cookieKeys.value = Object.keys(data?.cookie || {})
 })
 
+function clearKeys() {
+  localKeys.value = []
+  sessionKeys.value = []
+  cookieKeys.value = []
+}
+
+function clearChecked() {
+  checkedLocalKeys.value = []
+  checkedSessionKeys.value = []
+  checkedCookieKeys.value = []
+}
+
 async function getStorageData(tabId: number) {
-  const ares = await sendMessage('get-local-storage-data', { }, { context: 'content-script', tabId })
+  const ares = await sendMessage('get-storage-data', { local: true, session: true, cookie: true }, { context: 'content-script', tabId })
   return ares?.data
 }
 
@@ -44,10 +65,17 @@ function onMigrate() {
 
 async function syncStorageData() {
   try {
-    const response = await sendMessage('sync-local-storage-data', { sourceTabId: source.value, targetTabId: target.value, keys: checkedKeys.value }, { context: 'background', tabId: 0 })
+    const response = await sendMessage('sync-storage-data', { sourceTabId: source.value, targetTabId: target.value, keys: {
+      local: checkedLocalKeys.value,
+      session: checkedSessionKeys.value,
+      cookie: checkedCookieKeys.value,
+    } }, { context: 'background', tabId: 0 })
     if (response?.success) {
       success('Migrate success')
-      checkedKeys.value = []
+      clearChecked()
+    }
+    else {
+      error(response?.reason || 'Migrate failed')
     }
   }
   catch (e) {
@@ -81,10 +109,30 @@ async function syncStorageData() {
 
     <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-full border p-4">
       <legend class="fieldset-legend">
-        Migrate Options
+        Local Storage
       </legend>
-      <label v-for="key in storageKeys" :key="key" class="label">
-        <input v-model="checkedKeys" :value="key" type="checkbox" class="checkbox">
+      <label v-for="key in localKeys" :key="key" class="label">
+        <input v-model="checkedLocalKeys" :value="key" type="checkbox" class="checkbox">
+        {{ key }}
+      </label>
+    </fieldset>
+
+    <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">
+        Session Storage
+      </legend>
+      <label v-for="key in sessionKeys" :key="key" class="label">
+        <input v-model="checkedSessionKeys" :value="key" type="checkbox" class="checkbox">
+        {{ key }}
+      </label>
+    </fieldset>
+
+    <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">
+        Cookie Storage
+      </legend>
+      <label v-for="key in cookieKeys" :key="key" class="label">
+        <input v-model="checkedCookieKeys" :value="key" type="checkbox" class="checkbox">
         {{ key }}
       </label>
     </fieldset>
