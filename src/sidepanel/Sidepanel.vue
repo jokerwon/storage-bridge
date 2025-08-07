@@ -27,7 +27,8 @@ watch(source, async (newSource) => {
   const data = await getStorageData(newSource)
   localKeys.value = Object.keys(data?.local || {})
   sessionKeys.value = Object.keys(data?.session || {})
-  cookieKeys.value = Object.keys(data?.cookie || {})
+  const cookieData = await getCookieData(newSource)
+  cookieKeys.value = Object.keys(cookieData || {})
 })
 
 function clearKeys() {
@@ -43,7 +44,14 @@ function clearChecked() {
 }
 
 async function getStorageData(tabId: number) {
-  const ares = await sendMessage('get-storage-data', { local: true, session: true, cookie: true }, { context: 'content-script', tabId })
+  const ares = await sendMessage('get-storage-data', { local: true, session: true }, { context: 'content-script', tabId })
+  return ares?.data
+}
+async function getCookieData(tabId: number) {
+  const ares = await sendMessage('get-cookie-data', { tabId }, {
+    context: 'background',
+    tabId: 0, // [INFO] 这里的 tabId 要设为 0，否则无法正常触发事件
+  })
   return ares?.data
 }
 
@@ -65,11 +73,22 @@ function onMigrate() {
 
 async function syncStorageData() {
   try {
-    const response = await sendMessage('sync-storage-data', { sourceTabId: source.value, targetTabId: target.value, keys: {
-      local: checkedLocalKeys.value,
-      session: checkedSessionKeys.value,
-      cookie: checkedCookieKeys.value,
-    } }, { context: 'background', tabId: 0 })
+    const response = await sendMessage(
+      'sync-storage-data',
+      {
+        sourceTabId: source.value,
+        targetTabId: target.value,
+        keys: {
+          local: checkedLocalKeys.value,
+          session: checkedSessionKeys.value,
+          cookie: checkedCookieKeys.value,
+        },
+      },
+      {
+        context: 'background',
+        tabId: 0, // [INFO] 这里的 tabId 要设为 0，否则无法正常触发事件
+      },
+    )
     if (response?.success) {
       success('Migrate success')
       clearChecked()
